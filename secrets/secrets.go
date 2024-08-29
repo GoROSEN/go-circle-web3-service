@@ -7,11 +7,14 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/google/martian/log"
 )
 
 func GenerateEntitySecret() []byte {
@@ -25,23 +28,35 @@ func GenerateEntitySecret() []byte {
 
 func GetPublickKey(host, apikey string) (string, error) {
 
-	url := fmt.Sprintf("%v/v1/w3s/config/entity/publicKey", host)
-
-	req, _ := http.NewRequest("GET", url, nil)
-
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %v", apikey))
-
-	res, err := http.DefaultClient.Do(req)
-
-	if err != nil {
-		return "", err
+	var result struct {
+		Code int    `json:"code,omitempty"`
+		Msg  string `json:"message,omitempty"`
+		Data struct {
+			PublicKey string `json:"publicKey"`
+		} `json:"data,omitempty"`
 	}
 
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
+	url := fmt.Sprintf("%v/v1/w3s/config/entity/publicKey", host)
 
-	return string(body), err
+	client := resty.New()
+	if response, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Authorization", fmt.Sprintf("Bearer %v", apikey)).
+		// SetResult(&result).
+		Get(url); err != nil {
+		log.Errorf("calling get public service error: %v", err)
+		return "", err
+	} else {
+		// resty doesn't unmarshal the response to result, i don't know why
+		json.Unmarshal(response.Body(), &result)
+	}
+
+	if result.Code != 0 {
+		log.Errorf("get public service got error code: %v, reason: %v", result.Code, result.Msg)
+		return "", fmt.Errorf(result.Msg)
+	}
+
+	return result.Data.PublicKey, nil
 }
 
 func EncryptEntitySecret(hexEncodedEntitySecret, rsaPublicKeyString string) (string, error) {
