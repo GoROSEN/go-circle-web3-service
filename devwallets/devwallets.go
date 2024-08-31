@@ -235,6 +235,16 @@ func (s *CircleDevWalletsService) SendTransaction(destination, tokenId, walletId
 	tmp, _ := uuid.NewV4()
 	idempotencyKey := tmp.String()
 
+	var result struct {
+		Code int    `json:"code,omitempty"`
+		Msg  string `json:"message,omitempty"`
+		Data struct {
+			Id    string `json:"id"`
+			State string `json:"state"` // INITIATED PENDING_RISK_SCREENING DENIED QUEUED SENT CONFIRMED COMPLETE FAILED CANCELLED
+		} `json:"data,omitempty"`
+		Errors []map[string]interface{} `json:"errors,omitempty"`
+	}
+
 	url := fmt.Sprintf("%v/v1/w3s/developer/transactions/transfer", s.Host)
 
 	payloadObj := struct {
@@ -249,11 +259,30 @@ func (s *CircleDevWalletsService) SendTransaction(destination, tokenId, walletId
 		IdempotencyKey:         idempotencyKey,
 		EntitySecretCipherText: entitySecretCipherText,
 		Amounts:                amounts,
-		FeeLevel:               "HIGH",
+		FeeLevel:               "LOW",
 		TokenId:                tokenId,
 		WalletId:               walletId,
 		DestinationAddress:     destination,
 	}
 
-	return s.httpPost(url, payloadObj)
+	client := resty.New()
+	if response, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Authorization", fmt.Sprintf("Bearer %v", s.ApiKey)).
+		SetBody(&payloadObj).
+		// SetResult(&result).
+		Post(url); err != nil {
+		log.Errorf("calling CreateWallet, service error: %v", err)
+		return "", err
+	} else {
+		// resty doesn't unmarshal the response to result, i don't know why
+		json.Unmarshal(response.Body(), &result)
+	}
+
+	if result.Code != 0 {
+		log.Errorf("CreateWallets got error code: %v, reason: %v", result.Code, result.Msg)
+		return "", fmt.Errorf(result.Msg)
+	}
+
+	return result.Data.Id, nil
 }
