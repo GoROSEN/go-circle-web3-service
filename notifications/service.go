@@ -21,6 +21,13 @@ type NotificationService struct {
 	ApiKey string
 }
 
+func NewNotificationService(host, apikey string) *NotificationService {
+	return &NotificationService{
+		Host:   host,
+		ApiKey: apikey,
+	}
+}
+
 func (ns *NotificationService) GetPublicKey(keyid string) (*NotificationPublicKey, error) {
 
 	var result NotificationPublicKey
