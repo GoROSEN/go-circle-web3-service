@@ -2,7 +2,7 @@ package notifications
 
 import "time"
 
-type Transactioin struct {
+type Transaction struct {
 	ID                 string    `json:"id"`
 	CreateDate         time.Time `json:"createDate"`
 	UpdateDate         time.Time `json:"updateDate"`
