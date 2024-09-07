@@ -17,6 +17,8 @@ func main() {
 	secret := flag.String("secret", "", "your secret hex string which has been registered on the console of circle web3 service. it is a long hex digits looks like 'a2809c388a7f9c1220e19dd7f1ba15c95447a30cfc7c946baf6d36a4b4be087d'")
 	pubkeyFile := flag.String("pubkey", "key.pem", "your public key from the the console of circle web3 service. you can both download it from the console, or call GetPublickKey function from the secrets package of this SDK.")
 
+	flag.Parse()
+
 	if apikey == nil || len(*apikey) == 0 {
 		fmt.Println("apikey should not be empty")
 		return
@@ -45,6 +47,7 @@ func main() {
 		fmt.Printf("cannot create wallet set: %v\n", err)
 		return
 	}
+	fmt.Printf("got wallet set id %v\n", walletSet.ID)
 
 	// create wallets, for test api key, it can only create wallets on devnet or testnet.
 	// you have to use live api key to create any wallet on the mainnet
@@ -59,6 +62,7 @@ func main() {
 		fmt.Println("no wallet was created")
 		return
 	}
+	fmt.Printf("got wallet  id %v, address %v\n", wallets[0].ID, wallets[0].Address)
 
 	// get every token balances for the wallet
 	balances, err := service.GetWalletBalanceSimple(wallets[0].ID)
