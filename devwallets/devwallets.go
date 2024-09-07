@@ -4,54 +4,12 @@ package devwallets
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/GoROSEN/go-circle-web3-service/secrets"
 	"github.com/go-resty/resty/v2"
 	"github.com/gofrs/uuid"
 	"github.com/google/martian/log"
 )
-
-type DevWalletSet struct {
-	ID          string    `json:"id"`
-	CreateDate  time.Time `json:"createDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	CustodyType string    `json:"custodyType"` // DEVELOPER ENDUSER
-}
-
-type Wallet struct {
-	ID          string    `json:"id"`
-	Address     string    `json:"address"`
-	Blockchain  string    `json:"blockchain"` // ETH ETH-SEPOLIA AVAX AVAX-FUJI MATIC MATIC-AMOY SOL SOL-DEVNET
-	CreateDate  time.Time `json:"createDate"`
-	UpdateDate  time.Time `json:"updateDate"`
-	CustodyType string    `json:"custodyType"` // DEVELOPER ENDUSER
-	Name        string    `json:"name,omitempty"`
-	RefId       string    `json:"refId,omitempty"`
-	State       string    `json:"state"` // LIVE FROZEN
-	UserId      string    `json:"userId,omitempty"`
-	WalletSetId string    `json:"walletSetId"`
-	AccountType string    `json:"accountType"`       // SCA EOA
-	ScaCore     string    `json:"scaCore,omitempty"` // required for SCA wallet
-}
-
-type Token struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name,omitempty"`
-	Standard     string    `json:"standard,omitempty"`
-	Blockchain   string    `json:"blockchain"`
-	Decimals     int       `json:"decimals,omitempty"`
-	Symbol       string    `json:"symbol,omitempty"`
-	TokenAddress string    `json:"tokenAddress,omitempty"`
-	CreateDate   time.Time `json:"createDate"`
-	UpdateDate   time.Time `json:"updateDate"`
-}
-
-type TokenBalance struct {
-	Amount     string    `json:"amount"`
-	Token      Token     `json:"token"`
-	UpdateDate time.Time `json:"updateDate"`
-}
 
 // CircleDevWalletsService developer controlled wallets(DCW) service
 type CircleDevWalletsService struct {
@@ -175,10 +133,12 @@ func (s *CircleDevWalletsService) CreateWallet(walletSetId, accountType string, 
 	return result.Data.Wallets, nil
 }
 
+// GetWalletBalanceSimple get wallet tokens balance
 func (s *CircleDevWalletsService) GetWalletBalanceSimple(walletId string) ([]TokenBalance, error) {
 	return s.GetWalletBalance(walletId, "", "", "", "", "", false, 0)
 }
 
+// GetWalletBalance get paged tokens balances
 func (s *CircleDevWalletsService) GetWalletBalance(walletId, name, tokenAddress, standard, pageBefore, pageAfter string, includeAll bool, pageSize int) ([]TokenBalance, error) {
 
 	url := fmt.Sprintf("%v/v1/w3s/wallets/%v/balances", s.Host, walletId)
@@ -229,6 +189,7 @@ func (s *CircleDevWalletsService) GetWalletBalance(walletId, name, tokenAddress,
 	return result.Data.TokenBalance, nil
 }
 
+// SendTransaction send a transaction to circle web 3 service
 func (s *CircleDevWalletsService) SendTransaction(destination, tokenId, walletId string, amounts []string) (string, error) {
 
 	entitySecretCipherText, _ := secrets.EncryptEntitySecret(s.Secret, s.PublicKey)
